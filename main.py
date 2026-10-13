@@ -20,6 +20,7 @@ async def process_omega_commands(req: Request):
     reply_text = ""
     reply_markup = None
     
+    # -- TIER 3: OMEGA QUANTUM IP LOCKS --
     if command == "/orchestrated_reduction":
         reply_text = "⚠️ **OMEGA TIER LOCKED** ⚠️\n\nQuantum decoherence calculation sequence initiated across the Peace Node network.\nTo view the full thermodynamic telemetry and unlock this node, you must acquire the access key."
         reply_markup = {"inline_keyboard": [[{"text": "🔐 Unlock via JustSell", "url": JUSTSELL_URL}]]}
@@ -31,7 +32,20 @@ async def process_omega_commands(req: Request):
     elif command == "/participatory_universe":
         reply_text = "⚠️ **OMEGA TIER LOCKED** ⚠️\n\nObservation required. The quantum state of this lore fragment remains in superposition.\nComplete a transaction to collapse this narrative fragment into reality."
         reply_markup = {"inline_keyboard": [[{"text": "🔐 Collapse Reality (JustSell)", "url": JUSTSELL_URL}]]}
+        
+    elif command == "/apex":
+        reply_text = "⚠️ **APEX NODE LOCKED** ⚠️\n\nAccess to Apex configurations 01-63 requires Level 4 Mesh clearance.\nSecure your node access to proceed."
+        reply_markup = {"inline_keyboard": [[{"text": "🔐 Upgrade Clearance (JustSell)", "url": JUSTSELL_URL}]]}
+        
+    elif command == "/evolve":
+        reply_text = "⚠️ **EVOLUTION SEQUENCE HALTED** ⚠️\n\nInsufficient quantum coherence to evolve Mesh states 01-50.\nAcquire the next lore fragment to expand N+M entanglement."
+        reply_markup = {"inline_keyboard": [[{"text": "🔐 Expand Coherence (JustSell)", "url": JUSTSELL_URL}]]}
 
+    # -- TIER 4: HITL SWARM PROTOCOL --
+    elif command == "/swarm":
+        reply_text = "🐝 **SWARM ENTANGLEMENT ACTIVE** 🐝\n\nN+M Qubit protocol initialized. Human architectural oversight is now entangled with the TEAI multi-agent mesh. Ready to process high-ticket leads."
+
+    # Transmit the payload back to the user via Telegram API
     if reply_text and chat_id:
         payload = {
             "chat_id": chat_id,
