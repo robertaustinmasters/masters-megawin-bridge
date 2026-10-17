@@ -31,14 +31,13 @@ class SwarmRouter:
         
         # Updated to the official, current xAI flagship model
         payload = {
-            "model": "grok-2-latest",
+            "model": "grok-4.7",
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
             "temperature": 0.7
         }
-        
         async with httpx.AsyncClient(timeout=45.0) as client:
             try:
                 response = await client.post(
