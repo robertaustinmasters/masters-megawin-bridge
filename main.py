@@ -23,8 +23,8 @@ class SwarmRouter:
         if GEMINI_API_KEY == "YOUR_GEMINI_API_KEY_HERE":
             return "⚠️ GEMINI API KEY IS NOT SET IN ENVIRONMENT."
             
-        # Using direct native Google AI Studio endpoint for gemini-2.0-flash
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+        # Locked onto the current gemini-3.8-flash endpoint
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={GEMINI_API_KEY}"
         
         headers = {
             "Content-Type": "application/json"
@@ -93,7 +93,7 @@ class LeadPayload(BaseModel):
 # Health Check Endpoint
 @app.get("/")
 async def root():
-    return {"status": "U4U FastAPI Master Bridge Active - Native Gemini Mode"}
+    return {"status": "U4U FastAPI Master Bridge Active - Gemini 3.8 Flash Mode"}
 
 # Direct API endpoint for the web frontend
 @app.post("/api/synthesize")
