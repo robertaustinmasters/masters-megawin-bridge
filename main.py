@@ -16,20 +16,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "YOUR_GROQ_API_KEY_HERE")
+GROK_API_KEY = os.environ.get("GROK_API_KEY", "YOUR_GROK_API_KEY_HERE")
 
 class SwarmRouter:
     @staticmethod
-    async def fetch_groq_completion(system_prompt: str, user_prompt: str) -> str:
-        if GROQ_API_KEY == "YOUR_GROQ_API_KEY_HERE":
-            return "⚠️ GROQ API KEY MISSING."
+    async def fetch_grok_completion(system_prompt: str, user_prompt: str) -> str:
+        if GROK_API_KEY == "YOUR_GROK_API_KEY_HERE":
+            return "⚠️ GROK API KEY MISSING."
             
         headers = {
-            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Authorization": f"Bearer {GROK_API_KEY}",
             "Content-Type": "application/json"
         }
         payload = {
-            "model": "mixtral-8x7b-32768",
+            "model": "grok-beta",
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -40,7 +40,11 @@ class SwarmRouter:
         
         async with httpx.AsyncClient(timeout=45.0) as client:
             try:
-                response = await client.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers)
+                response = await client.post(
+                    "https://api.x.ai/v1/chat/completions", 
+                    headers=headers, 
+                    json=payload
+                )
                 response.raise_for_status()
                 return response.json()["choices"][0]["message"]["content"]
             except Exception as e:
@@ -54,7 +58,7 @@ class SwarmRouter:
             "Frame the service as the 'N+M Qubit' Human-AI Entanglement protocol. "
             "Do not sell coding hours; sell a hybrid intelligence mesh guaranteeing thermodynamic efficiency."
         )
-        return await SwarmRouter.fetch_groq_completion(system_prompt, payload_text)
+        return await SwarmRouter.fetch_grok_completion(system_prompt, payload_text)
 
 # Data model for incoming browser requests
 class LeadPayload(BaseModel):
