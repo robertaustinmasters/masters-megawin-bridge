@@ -6,8 +6,7 @@ from pydantic import BaseModel
 
 app = FastAPI(title="Masters Megawin Bridge")
 
-# Fixed CORS Middleware Configuration
-# Using wildcard origins with credentials=False for a secure open backend
+# Secure open backend configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -29,15 +28,16 @@ class SwarmRouter:
             "Content-Type": "application/json"
         }
         
-        # Updated to the official, current xAI flagship model
+        # Using grok-beta, the most stable and universally accepted xAI endpoint
         payload = {
-            "model": "grok-4.7",
+            "model": "grok-beta",
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
             "temperature": 0.7
         }
+        
         async with httpx.AsyncClient(timeout=45.0) as client:
             try:
                 response = await client.post(
@@ -45,10 +45,16 @@ class SwarmRouter:
                     headers=headers, 
                     json=payload
                 )
+                
+                # CRITICAL FIX: If xAI rejects the request, this catches the EXACT JSON reason 
+                # instead of just throwing a generic "400 Bad Request"
+                if response.status_code != 200:
+                    return f"⚠️ xAI API Error {response.status_code}: {response.text}"
+                    
                 response.raise_for_status()
                 return response.json()["choices"][0]["message"]["content"]
             except Exception as e:
-                return f"⚠️ Swarm API Error: {str(e)}"
+                return f"⚠️ Python HTTP Error: {str(e)}"
 
     @staticmethod
     async def process_job_lead(payload_text: str) -> str:
@@ -69,6 +75,16 @@ class SwarmRouter:
         )
         return await SwarmRouter.fetch_grok_completion(system_prompt, payload_text)
 
+    @staticmethod
+    async def process_generic_command(command_name: str, payload_text: str) -> str:
+        system_prompt = (
+            f"You are the U-for-Us Regenerative Mesh AI. "
+            f"The user has initiated the '{command_name}' protocol. "
+            f"Provide a highly analytical, architectural response aligned with Robert Austin Masters' frameworks."
+        )
+        return await SwarmRouter.fetch_grok_completion(system_prompt, payload_text)
+
+
 # Data model for incoming browser requests
 class LeadPayload(BaseModel):
     command: str
@@ -82,11 +98,15 @@ async def root():
 # Direct API endpoint for the web frontend
 @app.post("/api/synthesize")
 async def api_synthesize(payload: LeadPayload):
-    if payload.command == "/job_lead":
+    cmd = payload.command.lower().strip()
+    
+    if cmd == "/job_lead":
         result = await SwarmRouter.process_job_lead(payload.text)
-    elif payload.command == "/grant_lead":
+    elif cmd == "/grant_lead":
         result = await SwarmRouter.process_grant_lead(payload.text)
+    elif cmd in ["swarm", "apex", "evolve"]:
+        result = await SwarmRouter.process_generic_command(cmd, payload.text)
     else:
-        result = "Invalid command sequence."
+        result = "Invalid command sequence. Available commands: /job_lead, /grant_lead, swarm, apex, evolve."
     
     return {"status": "success", "response": result}
