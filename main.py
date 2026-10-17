@@ -21,16 +21,16 @@ class SwarmRouter:
     @staticmethod
     async def fetch_grok_completion(system_prompt: str, user_prompt: str) -> str:
         if GROK_API_KEY == "YOUR_GROK_API_KEY_HERE":
-            return "⚠️ GROK API KEY MISSING."
+            return "⚠️ GROK API KEY IS NOT SET IN ENVIRONMENT."
             
         headers = {
             "Authorization": f"Bearer {GROK_API_KEY}",
             "Content-Type": "application/json"
         }
         
-        # Using grok-beta, the most stable and universally accepted xAI endpoint
+        # Using grok-4.7, the current 2026 xAI flagship model
         payload = {
-            "model": "grok-beta",
+            "model": "grok-4.7",
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -46,8 +46,7 @@ class SwarmRouter:
                     json=payload
                 )
                 
-                # CRITICAL FIX: If xAI rejects the request, this catches the EXACT JSON reason 
-                # instead of just throwing a generic "400 Bad Request"
+                # Catch exact xAI JSON reason if rejected
                 if response.status_code != 200:
                     return f"⚠️ xAI API Error {response.status_code}: {response.text}"
                     
