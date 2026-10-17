@@ -23,19 +23,22 @@ class SwarmRouter:
         if GEMINI_API_KEY == "YOUR_GEMINI_API_KEY_HERE":
             return "⚠️ GEMINI API KEY IS NOT SET IN ENVIRONMENT."
             
-        # Using the direct, native Google AI Studio endpoint for gemini-1.5-flash
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        # Using direct native Google AI Studio endpoint for gemini-2.0-flash
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
         
         headers = {
             "Content-Type": "application/json"
         }
         
-        # Native Google Gemini payload structure
+        # Native Google Gemini payload structure with system instruction separation
         payload = {
+            "system_instruction": {
+                "parts": [{"text": system_prompt}]
+            },
             "contents": [
                 {
                     "parts": [
-                        {"text": f"System Instructions:\n{system_prompt}\n\nUser Request:\n{user_prompt}"}
+                        {"text": user_prompt}
                     ]
                 }
             ]
@@ -49,7 +52,6 @@ class SwarmRouter:
                     return f"⚠️ Gemini Native API Error {response.status_code}: {response.text}"
                     
                 data = response.json()
-                # Parse native Gemini response structure safely
                 return data["candidates"][0]["content"]["parts"][0]["text"]
             except Exception as e:
                 return f"⚠️ Python HTTP Error: {str(e)}"
