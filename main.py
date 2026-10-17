@@ -20,19 +20,18 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY_HERE")
 class SwarmRouter:
     @staticmethod
     async def fetch_gemini_native(system_prompt: str, user_prompt: str) -> str:
-        if GEMINI_API_KEY == "YOUR_GEMINI_API_KEY_HERE":
+        if GEMINI_API_KEY == "YOUR_GEMINI_API_KEY_HERE" or not GEMINI_API_KEY:
             return "⚠️ GEMINI API KEY IS NOT SET IN ENVIRONMENT."
             
-        # Locked onto the current gemini-3.8-flash endpoint
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={GEMINI_API_KEY}"
         
         headers = {
             "Content-Type": "application/json"
         }
         
-        # Native Google Gemini payload structure with system instruction separation
+        # Native Google Gemini payload structure (strict camelCase)
         payload = {
-            "system_instruction": {
+            "systemInstruction": {
                 "parts": [{"text": system_prompt}]
             },
             "contents": [
