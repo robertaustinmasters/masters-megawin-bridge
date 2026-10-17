@@ -1,17 +1,17 @@
-import httpx
-import asyncio
 import os
-from fastapi import FastAPI, Request
+import httpx
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-app = FastAPI()
+app = FastAPI(title="Masters Megawin Bridge")
 
-# Enable CORS for direct browser access
+# Fixed CORS Middleware Configuration
+# Using wildcard origins with credentials=False for a secure open backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
-    allow_credentials=False,  # <-- THIS MUST BE FALSE
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -28,14 +28,15 @@ class SwarmRouter:
             "Authorization": f"Bearer {GROK_API_KEY}",
             "Content-Type": "application/json"
         }
+        
+        # Updated to the official, current xAI flagship model
         payload = {
-            "model": "grok-beta",
+            "model": "grok-2-latest",
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            "temperature": 0.7,
-            "max_tokens": 1500
+            "temperature": 0.7
         }
         
         async with httpx.AsyncClient(timeout=45.0) as client:
@@ -60,10 +61,24 @@ class SwarmRouter:
         )
         return await SwarmRouter.fetch_grok_completion(system_prompt, payload_text)
 
+    @staticmethod
+    async def process_grant_lead(payload_text: str) -> str:
+        system_prompt = (
+            "You are the principal architect of Freedom Utilization Consulting. "
+            "Generate a professional grant proposal or policy overview based on the provided requirements. "
+            "Ensure the tone aligns with your overarching U-for-Us Regenerative Mesh and agricultural utilization standards."
+        )
+        return await SwarmRouter.fetch_grok_completion(system_prompt, payload_text)
+
 # Data model for incoming browser requests
 class LeadPayload(BaseModel):
     command: str
     text: str
+
+# Health Check Endpoint
+@app.get("/")
+async def root():
+    return {"status": "U4U FastAPI Master Bridge Active - REST API Mode"}
 
 # Direct API endpoint for the web frontend
 @app.post("/api/synthesize")
@@ -76,7 +91,3 @@ async def api_synthesize(payload: LeadPayload):
         result = "Invalid command sequence."
     
     return {"status": "success", "response": result}
-
-@app.get("/")
-async def root():
-    return {"status": "U4U FastAPI Master Bridge Active - REST API Mode"}
