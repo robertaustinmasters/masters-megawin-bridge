@@ -1,5 +1,6 @@
 import os
 import httpx
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -29,31 +30,40 @@ class SwarmRouter:
             "Content-Type": "application/json"
         }
         
-        # Native Google Gemini payload structure (strict camelCase)
         payload = {
             "systemInstruction": {
                 "parts": [{"text": system_prompt}]
             },
             "contents": [
                 {
-                    "parts": [
-                        {"text": user_prompt}
-                    ]
+                    "parts": [{"text": user_prompt}]
                 }
             ]
         }
         
-        async with httpx.AsyncClient(timeout=45.0) as client:
-            try:
-                response = await client.post(url, headers=headers, json=payload)
-                
-                if response.status_code != 200:
+        # 3-Attempt Exponential Backoff to bypass 503 Traffic
+        max_retries = 3
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            for attempt in range(max_retries):
+                try:
+                    response = await client.post(url, headers=headers, json=payload)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        return data["candidates"][0]["content"]["parts"][0]["text"]
+                        
+                    # Catch the 503 traffic error and wait before trying again
+                    if response.status_code == 503 and attempt < max_retries - 1:
+                        await asyncio.sleep(2 ** attempt)  # Waits 1 sec, then 2 secs
+                        continue
+                        
                     return f"⚠️ Gemini Native API Error {response.status_code}: {response.text}"
                     
-                data = response.json()
-                return data["candidates"][0]["content"]["parts"][0]["text"]
-            except Exception as e:
-                return f"⚠️ Python HTTP Error: {str(e)}"
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(2 ** attempt)
+                        continue
+                    return f"⚠️ Python HTTP Error: {str(e)}"
 
     @staticmethod
     async def process_job_lead(payload_text: str) -> str:
@@ -83,18 +93,14 @@ class SwarmRouter:
         )
         return await SwarmRouter.fetch_gemini_native(system_prompt, payload_text)
 
-
-# Data model for incoming browser requests
 class LeadPayload(BaseModel):
     command: str
     text: str
 
-# Health Check Endpoint
 @app.get("/")
 async def root():
-    return {"status": "U4U FastAPI Master Bridge Active - Gemini 3.8 Flash Mode"}
+    return {"status": "U4U FastAPI Master Bridge Active - Gemini 3.8 Flash Mode (Resilient)"}
 
-# Direct API endpoint for the web frontend
 @app.post("/api/synthesize")
 async def api_synthesize(payload: LeadPayload):
     cmd = payload.command.lower().strip()
