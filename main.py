@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-app = FastAPI(title="Masters Megawin Bridge - Gemini Engine")
+app = FastAPI(title="Masters Megawin Bridge - Native Gemini Engine")
 
 # Secure open backend configuration
 app.add_middleware(
@@ -19,38 +19,38 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY_HERE")
 
 class SwarmRouter:
     @staticmethod
-    async def fetch_gemini_completion(system_prompt: str, user_prompt: str) -> str:
+    async def fetch_gemini_native(system_prompt: str, user_prompt: str) -> str:
         if GEMINI_API_KEY == "YOUR_GEMINI_API_KEY_HERE":
             return "⚠️ GEMINI API KEY IS NOT SET IN ENVIRONMENT."
             
+        # Using the direct, native Google AI Studio endpoint for gemini-1.5-flash
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        
         headers = {
-            "Authorization": f"Bearer {GEMINI_API_KEY}",
             "Content-Type": "application/json"
         }
         
-        # Google AI Studio OpenAI-compatible endpoint using gemini-1.5-flash
+        # Native Google Gemini payload structure
         payload = {
-            "model": "gemini-1.5-flash",
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            "temperature": 0.7
+            "contents": [
+                {
+                    "parts": [
+                        {"text": f"System Instructions:\n{system_prompt}\n\nUser Request:\n{user_prompt}"}
+                    ]
+                }
+            ]
         }
         
         async with httpx.AsyncClient(timeout=45.0) as client:
             try:
-                response = await client.post(
-                    "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", 
-                    headers=headers, 
-                    json=payload
-                )
+                response = await client.post(url, headers=headers, json=payload)
                 
                 if response.status_code != 200:
-                    return f"⚠️ Gemini API Error {response.status_code}: {response.text}"
+                    return f"⚠️ Gemini Native API Error {response.status_code}: {response.text}"
                     
-                response.raise_for_status()
-                return response.json()["choices"][0]["message"]["content"]
+                data = response.json()
+                # Parse native Gemini response structure safely
+                return data["candidates"][0]["content"]["parts"][0]["text"]
             except Exception as e:
                 return f"⚠️ Python HTTP Error: {str(e)}"
 
@@ -62,7 +62,7 @@ class SwarmRouter:
             "Frame the service as the 'N+M Qubit' Human-AI Entanglement protocol. "
             "Do not sell coding hours; sell a hybrid intelligence mesh guaranteeing thermodynamic efficiency."
         )
-        return await SwarmRouter.fetch_gemini_completion(system_prompt, payload_text)
+        return await SwarmRouter.fetch_gemini_native(system_prompt, payload_text)
 
     @staticmethod
     async def process_grant_lead(payload_text: str) -> str:
@@ -71,7 +71,7 @@ class SwarmRouter:
             "Generate a professional grant proposal or policy overview based on the provided requirements. "
             "Ensure the tone aligns with your overarching U-for-Us Regenerative Mesh and agricultural utilization standards."
         )
-        return await SwarmRouter.fetch_gemini_completion(system_prompt, payload_text)
+        return await SwarmRouter.fetch_gemini_native(system_prompt, payload_text)
 
     @staticmethod
     async def process_generic_command(command_name: str, payload_text: str) -> str:
@@ -80,7 +80,7 @@ class SwarmRouter:
             f"The user has initiated the '{command_name}' protocol. "
             f"Provide a highly analytical, architectural response aligned with Robert Austin Masters' frameworks."
         )
-        return await SwarmRouter.fetch_gemini_completion(system_prompt, payload_text)
+        return await SwarmRouter.fetch_gemini_native(system_prompt, payload_text)
 
 
 # Data model for incoming browser requests
@@ -91,7 +91,7 @@ class LeadPayload(BaseModel):
 # Health Check Endpoint
 @app.get("/")
 async def root():
-    return {"status": "U4U FastAPI Master Bridge Active - Gemini Engine Mode"}
+    return {"status": "U4U FastAPI Master Bridge Active - Native Gemini Mode"}
 
 # Direct API endpoint for the web frontend
 @app.post("/api/synthesize")
