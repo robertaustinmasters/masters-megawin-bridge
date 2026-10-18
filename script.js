@@ -1,22 +1,11 @@
-// U4U Terminal - Frontend Logic
-
-// --- 1. Master Bridge Pipeline ---
 async function routeToMasterBridge(commandName, userText) {
     try {
         const response = await fetch("https://masters-megawin-bridge.onrender.com/api/synthesize", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            body: JSON.stringify({
-                command: commandName,
-                text: userText
-            })
+            headers: { "Content-Type": "application/json", "Accept": "application/json" },
+            body: JSON.stringify({ command: commandName, text: userText })
         });
-
         const data = await response.json();
-
         if (data.status === "success") {
             return data.response;
         } else {
@@ -27,64 +16,50 @@ async function routeToMasterBridge(commandName, userText) {
     }
 }
 
-// --- 2. Terminal UI Logic ---
 document.addEventListener("DOMContentLoaded", () => {
     const outputDiv = document.getElementById("terminal-output");
     const inputField = document.getElementById("terminal-input");
 
-    if (!inputField || !outputDiv) {
-        console.warn("System Notice: Please ensure your HTML contains <div id='terminal-output'></div> and <input id='terminal-input'>");
-        return;
-    }
+    if (!inputField || !outputDiv) return;
 
-    // Helper to write text to the screen
     function printToTerminal(text, isCommand = false) {
         const newLine = document.createElement("div");
         newLine.style.marginBottom = "10px";
-        newLine.style.whiteSpace = "pre-wrap"; // Preserves formatting from the backend
+        newLine.style.whiteSpace = "pre-wrap";
         newLine.innerText = isCommand ? "> " + text : text;
-        
         outputDiv.appendChild(newLine);
-        outputDiv.scrollTop = outputDiv.scrollHeight; // Auto-scroll to bottom
+        outputDiv.scrollTop = outputDiv.scrollHeight;
     }
 
-    // Listen for 'Enter' key
     inputField.addEventListener("keydown", async (event) => {
         if (event.key === "Enter") {
             const rawInput = inputField.value.trim();
             if (!rawInput) return;
 
-            // 1. Print what the user typed
             printToTerminal(rawInput, true);
-            inputField.value = ""; // clear input box
+            inputField.value = ""; 
             
-            // 2. Parse the command
             const parts = rawInput.split(" ");
-            const command = parts[0].toLowerCase(); // e.g., "/job_lead"
-            const payloadText = parts.slice(1).join(" "); // everything after the command
+            const command = parts[0].toLowerCase();
+            const payloadText = parts.slice(1).join(" "); 
 
-            // Master list of commands your Render backend supports
-            const validCommands = ["/job_lead", "/grant_lead", "swarm", "apex", "evolve"];
+            // Whitelist expanded to include /analyze_code
+            const validCommands = ["/job_lead", "/grant_lead", "/analyze_code", "swarm", "apex", "evolve"];
 
             if (validCommands.includes(command)) {
                 printToTerminal("Uplinking to Master Bridge... [Awaiting Phase Lock]");
+                inputField.disabled = true; 
                 
-                inputField.disabled = true; // Lock input while waiting
-                
-                // 3. Send to Render Backend
                 const result = await routeToMasterBridge(command, payloadText || "Execute standard protocol.");
                 
-                // 4. Print Backend Response
                 printToTerminal(result);
-                
-                inputField.disabled = false; // Unlock input
+                inputField.disabled = false; 
                 inputField.focus();
             } else {
-                printToTerminal(`Unrecognized command. Valid protocols: /job_lead, /grant_lead, swarm, apex, evolve`);
+                printToTerminal(`Unrecognized command. Valid protocols: /job_lead, /grant_lead, /analyze_code, swarm, apex, evolve`);
             }
         }
     });
     
-    // Initial boot sequence greeting
-    printToTerminal("U4U Terminal Initialized. Enter a protocol to begin (e.g., /job_lead Hello).");
+    printToTerminal("U4U Terminal Initialized. Enter a protocol to begin (e.g., /analyze_code def hello_world(): pass).");
 });

@@ -7,7 +7,6 @@ from pydantic import BaseModel
 
 app = FastAPI(title="Masters Megawin Bridge - Native Gemini Engine")
 
-# Secure open backend configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -25,40 +24,23 @@ class SwarmRouter:
             return "⚠️ GEMINI API KEY IS NOT SET IN ENVIRONMENT."
             
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={GEMINI_API_KEY}"
-        
-        headers = {
-            "Content-Type": "application/json"
-        }
-        
+        headers = {"Content-Type": "application/json"}
         payload = {
-            "systemInstruction": {
-                "parts": [{"text": system_prompt}]
-            },
-            "contents": [
-                {
-                    "parts": [{"text": user_prompt}]
-                }
-            ]
+            "systemInstruction": {"parts": [{"text": system_prompt}]},
+            "contents": [{"parts": [{"text": user_prompt}]}]
         }
         
-        # 3-Attempt Exponential Backoff to bypass 503 Traffic
         max_retries = 3
         async with httpx.AsyncClient(timeout=60.0) as client:
             for attempt in range(max_retries):
                 try:
                     response = await client.post(url, headers=headers, json=payload)
-                    
                     if response.status_code == 200:
-                        data = response.json()
-                        return data["candidates"][0]["content"]["parts"][0]["text"]
-                        
-                    # Catch the 503 traffic error and wait before trying again
+                        return response.json()["candidates"][0]["content"]["parts"][0]["text"]
                     if response.status_code == 503 and attempt < max_retries - 1:
-                        await asyncio.sleep(2 ** attempt)  # Waits 1 sec, then 2 secs
+                        await asyncio.sleep(2 ** attempt)
                         continue
-                        
                     return f"⚠️ Gemini Native API Error {response.status_code}: {response.text}"
-                    
                 except Exception as e:
                     if attempt < max_retries - 1:
                         await asyncio.sleep(2 ** attempt)
@@ -81,6 +63,15 @@ class SwarmRouter:
             "You are the principal architect of Freedom Utilization Consulting. "
             "Generate a professional grant proposal or policy overview based on the provided requirements. "
             "Ensure the tone aligns with your overarching U-for-Us Regenerative Mesh and agricultural utilization standards."
+        )
+        return await SwarmRouter.fetch_gemini_native(system_prompt, payload_text)
+
+    @staticmethod
+    async def process_analyze_code(payload_text: str) -> str:
+        system_prompt = (
+            "You are the Lead Code Architect of the U-for-Us Regenerative Mesh. "
+            "Analyze the provided code for thermodynamic efficiency, structural integrity, "
+            "and logical coherence. Provide a concise, highly technical diagnostic report."
         )
         return await SwarmRouter.fetch_gemini_native(system_prompt, payload_text)
 
@@ -109,9 +100,11 @@ async def api_synthesize(payload: LeadPayload):
         result = await SwarmRouter.process_job_lead(payload.text)
     elif cmd == "/grant_lead":
         result = await SwarmRouter.process_grant_lead(payload.text)
+    elif cmd == "/analyze_code":
+        result = await SwarmRouter.process_analyze_code(payload.text)
     elif cmd in ["swarm", "apex", "evolve"]:
         result = await SwarmRouter.process_generic_command(cmd, payload.text)
     else:
-        result = "Invalid command sequence. Available commands: /job_lead, /grant_lead, swarm, apex, evolve."
+        result = "Invalid command sequence. Available commands: /job_lead, /grant_lead, /analyze_code, swarm, apex, evolve."
     
     return {"status": "success", "response": result}
