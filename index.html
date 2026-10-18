@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>U4U Master Bridge Terminal</title>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        .terminal-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.1);
+        }
+        #terminal-output {
+            height: 60vh;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding-right: 10px;
+            line-height: 1.5;
+        }
+        .input-line {
+            display: flex;
+            align-items: center;
+        }
+        .prompt {
+            color: #00ff00;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        #terminal-input {
+            background: transparent;
+            border: none;
+            color: #00ff00;
+            font-family: inherit;
+            font-size: 16px;
+            width: 100%;
+            outline: none;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0d1117; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00ff00; }
+    </style>
+</head>
+<body>
+    <div class="terminal-container">
+        <!-- 1. The Output Area ID -->
+        <div id="terminal-output"></div>
+        
+        <!-- 2. The Input Field ID -->
+        <div class="input-line">
+            <span class="prompt">root@u4u-bridge:~#</span>
+            <input type="text" id="terminal-input" autocomplete="off" autofocus placeholder="Awaiting protocol... (e.g., /job_lead Hello)" />
+        </div>
+    </div>
+
+    <!-- 3. Links to the script.js file you created earlier -->
+    <script src="script.js"></script>
+</body>
+</html>
