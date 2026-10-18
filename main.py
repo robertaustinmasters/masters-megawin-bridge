@@ -1,7 +1,7 @@
 import os
 import httpx
 import asyncio
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -16,6 +16,7 @@ app.add_middleware(
 )
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY_HERE")
+TELEGRAM_TOKEN = "8581114757:AAHMeVMoYep7Ws3Lyh6LEYv4HrlNjnz8pNs"
 
 class SwarmRouter:
     @staticmethod
@@ -108,3 +109,46 @@ async def api_synthesize(payload: LeadPayload):
         result = "Invalid command sequence. Available commands: /job_lead, /grant_lead, /analyze_code, swarm, apex, evolve."
     
     return {"status": "success", "response": result}
+
+# --- TELEGRAM DIRECT WEBHOOK INTEGRATION ---
+async def send_telegram_message(chat_id: int, text: str):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
+    async with httpx.AsyncClient() as client:
+        await client.post(url, json=payload)
+
+@app.post("/webhook")
+async def telegram_webhook(request: Request):
+    try:
+        update = await request.json()
+        if "message" in update and "text" in update["message"]:
+            chat_id = update["message"]["chat"]["id"]
+            user_text = update["message"]["text"].strip()
+            
+            parts = user_text.split(" ")
+            command = parts[0].lower()
+            payload_text = " ".join(parts[1:]) or "Execute standard protocol."
+            
+            valid_commands = ["/job_lead", "/grant_lead", "/analyze_code", "swarm", "apex", "evolve"]
+            
+            if command == "/start":
+                await send_telegram_message(chat_id, "U4U Terminal Initialized. Enter a protocol to begin (e.g., `/analyze_code def hello(): pass`).")
+            elif command in valid_commands:
+                await send_telegram_message(chat_id, "⚙️ *Uplinking to Master Bridge... [Awaiting Phase Lock]*")
+                
+                if command == "/job_lead":
+                    result = await SwarmRouter.process_job_lead(payload_text)
+                elif command == "/grant_lead":
+                    result = await SwarmRouter.process_grant_lead(payload_text)
+                elif command == "/analyze_code":
+                    result = await SwarmRouter.process_analyze_code(payload_text)
+                else:
+                    result = await SwarmRouter.process_generic_command(command, payload_text)
+                    
+                await send_telegram_message(chat_id, result)
+            else:
+                await send_telegram_message(chat_id, "Unrecognized command. Valid protocols: `/job_lead`, `/grant_lead`, `/analyze_code`, `swarm`, `apex`, `evolve`")
+    except Exception as e:
+        print(f"Webhook Error: {e}")
+        
+    return {"ok": True}
