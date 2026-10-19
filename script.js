@@ -1,9 +1,9 @@
-async function routeToMasterBridge(commandName, userText) {
+﻿async function routeToMasterBridge(commandName, userText) {
     try {
         const response = await fetch("https://masters-megawin-bridge.onrender.com/api/synthesize", {
             method: "POST",
             headers: { "Content-Type": "application/json", "Accept": "application/json" },
-            body: JSON.stringify({ command: commandName, text: userText })
+            body: JSON.stringify({ command: parsedCommandName, text: userText })
         });
         const data = await response.json();
         if (data.status === "success") {
@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const payloadText = parts.slice(1).join(" "); 
 
             // Whitelist expanded to include /analyze_code
-            const validCommands = ["/job_lead", "/grant_lead", "/analyze_code", "swarm", "apex", "evolve"];
+            const validCommands = ["/job_lead", "/grant_lead", "/analyze_code", "swarm", "apex", "evolve", "evolve 01"];
 
             if (validCommands.includes(command)) {
                 printToTerminal("Uplinking to Master Bridge... [Awaiting Phase Lock]");
