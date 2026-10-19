@@ -1,7 +1,7 @@
 import os
 import httpx
 import asyncio
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -47,6 +47,19 @@ class SwarmRouter:
                         await asyncio.sleep(2 ** attempt)
                         continue
                     return f"⚠️ Python HTTP Error: {str(e)}"
+
+    @staticmethod
+    async def process_evolve_01(job_description: str) -> str:
+        system_prompt = (
+            "You are Robert Austin Masters, Fractional CTO and Master Architect of the U-for-Us Regenerative Mesh. "
+            "Write a commanding, zero-fluff freelance/Upwork cover letter for the provided job description. "
+            "Tone: Absolute Truth, Christos-Gnosis alignment. No 'I think I can'. Use literal, verifiable statements. "
+            "Structure: 1. Acknowledge the core problem. 2. State exactly how the U4U Mesh architecture or Universal Bridge Server solves it. "
+            "3. Cite a specific past success: 'I previously locked the systemic state configuration under version 1.6.33-INDUSTRY.' "
+            "4. Offer a clear next step: 'I can install this routing matrix on your backend this week.' "
+            "Do not invent experience outside of U4U, FastAPI, LoRaWAN IoT, and multi-agent AI orchestration."
+        )
+        return await SwarmRouter.fetch_gemini_native(system_prompt, job_description)
 
     @staticmethod
     async def process_job_lead(payload_text: str) -> str:
@@ -97,7 +110,9 @@ async def root():
 async def api_synthesize(payload: LeadPayload):
     cmd = payload.command.lower().strip()
     
-    if cmd == "/job_lead":
+    if cmd == "evolve 01":
+        result = await SwarmRouter.process_evolve_01(payload.text)
+    elif cmd == "/job_lead":
         result = await SwarmRouter.process_job_lead(payload.text)
     elif cmd == "/grant_lead":
         result = await SwarmRouter.process_grant_lead(payload.text)
@@ -106,7 +121,7 @@ async def api_synthesize(payload: LeadPayload):
     elif cmd in ["swarm", "apex", "evolve"]:
         result = await SwarmRouter.process_generic_command(cmd, payload.text)
     else:
-        result = "Invalid command sequence. Available commands: /job_lead, /grant_lead, /analyze_code, swarm, apex, evolve."
+        result = "Invalid command sequence. Available commands: evolve 01, /job_lead, /grant_lead, /analyze_code, swarm, apex, evolve."
     
     return {"status": "success", "response": result}
 
@@ -117,37 +132,50 @@ async def send_telegram_message(chat_id: int, text: str):
     async with httpx.AsyncClient() as client:
         await client.post(url, json=payload)
 
+async def background_telegram_processor(chat_id: int, user_text: str):
+    valid_commands = ["/job_lead", "/grant_lead", "/analyze_code", "swarm", "apex", "evolve"]
+    
+    if user_text.lower().startswith("evolve 01"):
+        command = "evolve 01"
+        payload_text = user_text[9:].strip()
+    else:
+        parts = user_text.split(" ")
+        command = parts[0].lower()
+        payload_text = " ".join(parts[1:]) or "Execute standard protocol."
+
+    if command == "/start":
+        await send_telegram_message(chat_id, "U4U Terminal Initialized. Enter a protocol to begin.")
+        return
+
+    if command == "evolve 01" or command in valid_commands:
+        await send_telegram_message(chat_id, "⚙️ *Uplinking to Master Bridge... [Awaiting Phase Lock]*")
+        
+        if command == "evolve 01":
+            result = await SwarmRouter.process_evolve_01(payload_text)
+        elif command == "/job_lead":
+            result = await SwarmRouter.process_job_lead(payload_text)
+        elif command == "/grant_lead":
+            result = await SwarmRouter.process_grant_lead(payload_text)
+        elif command == "/analyze_code":
+            result = await SwarmRouter.process_analyze_code(payload_text)
+        else:
+            result = await SwarmRouter.process_generic_command(command, payload_text)
+            
+        await send_telegram_message(chat_id, result)
+    else:
+        await send_telegram_message(chat_id, "Unrecognized command. Valid protocols: `evolve 01`, `/job_lead`, `/grant_lead`, `/analyze_code`, `swarm`, `apex`, `evolve`")
+
 @app.post("/webhook")
-async def telegram_webhook(request: Request):
+async def telegram_webhook(request: Request, bg_tasks: BackgroundTasks):
     try:
         update = await request.json()
         if "message" in update and "text" in update["message"]:
             chat_id = update["message"]["chat"]["id"]
             user_text = update["message"]["text"].strip()
             
-            parts = user_text.split(" ")
-            command = parts[0].lower()
-            payload_text = " ".join(parts[1:]) or "Execute standard protocol."
+            # Offload to background task to instantly return 200 OK to Telegram
+            bg_tasks.add_task(background_telegram_processor, chat_id, user_text)
             
-            valid_commands = ["/job_lead", "/grant_lead", "/analyze_code", "swarm", "apex", "evolve"]
-            
-            if command == "/start":
-                await send_telegram_message(chat_id, "U4U Terminal Initialized. Enter a protocol to begin (e.g., `/analyze_code def hello(): pass`).")
-            elif command in valid_commands:
-                await send_telegram_message(chat_id, "⚙️ *Uplinking to Master Bridge... [Awaiting Phase Lock]*")
-                
-                if command == "/job_lead":
-                    result = await SwarmRouter.process_job_lead(payload_text)
-                elif command == "/grant_lead":
-                    result = await SwarmRouter.process_grant_lead(payload_text)
-                elif command == "/analyze_code":
-                    result = await SwarmRouter.process_analyze_code(payload_text)
-                else:
-                    result = await SwarmRouter.process_generic_command(command, payload_text)
-                    
-                await send_telegram_message(chat_id, result)
-            else:
-                await send_telegram_message(chat_id, "Unrecognized command. Valid protocols: `/job_lead`, `/grant_lead`, `/analyze_code`, `swarm`, `apex`, `evolve`")
     except Exception as e:
         print(f"Webhook Error: {e}")
         
